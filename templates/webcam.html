@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Hand Recognition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .camera-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .camera-container {
+            position: relative;
+            display: inline-block;
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        #videoCanvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .gesture-input {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .gesture-input input {
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1em;
+            width: 300px;
+            max-width: 100%;
+            margin-right: 10px;
+        }
+
+        .gesture-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .gesture-result {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .gesture-result h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .gesture-result p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .feature h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .feature p {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Simple Hand Recognition</h1>
+            <p>Basic hand detection and gesture recognition system</p>
+        </div>
+
+        <div class="camera-section">
+            <div class="camera-container">
+                <canvas id="videoCanvas" width="640" height="480"></canvas>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn" class="btn" onclick="startCamera()">🎥 Start Camera</button>
+            <button id="stopBtn" class="btn" onclick="stopCamera()" disabled>⏹️ Stop Camera</button>
+            <button id="collectBtn" class="btn" onclick="collectGesture()" disabled>📸 Collect Gesture</button>
+            <button id="trainBtn" class="btn" onclick="console.log('🔘 Train Model button clicked'); trainModel();" disabled>🧠 Train Model</button>
+            <button id="recognizeBtn" class="btn" onclick="startRecognition()" disabled>🔍 Recognize</button>
+            
+            <a href="/logout" style="
+                display: inline-block;
+                margin-left: 10px;
+                padding: 10px 16px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: 600;
+                color: white;
+                background: linear-gradient(45deg, #ff6b6b, #f06595);
+                box-shadow: 0 6px 16px rgba(240, 101, 149, 0.3);
+                transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            "
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 22px rgba(240,101,149,0.4)';"
+            onmouseout ="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(240,101,149,0.3)';"
+            >
+                Logout
+            </a>
+            
+            <button id="downloadBtn" class="btn" onclick="downloadData()" disabled>⬇️ Download Data</button>
+            <button id="downloadCsvBtn" class="btn" onclick="downloadLabeledCSV()" disabled>⬇️ Download CSV</button>
+            <button id="deleteBtn" class="btn" onclick="deleteData()" disabled>🗑️ Delete Data</button>
+            <button id="loadBtn" class="btn" onclick="document.getElementById('loadInput').click()">📤 Load Saved Data</button>
+            <input type="file" id="loadInput" accept="application/json" style="display:none" onchange="loadSavedData(event)">
+        </div>
+
+        <div id="status" class="status info">
+            Ready to start camera
+        </div>
+
+        <div class="gesture-input" id="gestureInput" style="display: none;">
+            <input type="text" id="gestureName" placeholder="Enter gesture name (e.g., 'thumbs up')" maxlength="50">
+            <button class="btn" onclick="startGestureCollection()">Start Collection</button>
+        </div>
+
+        <div id="gestureResult" class="gesture-result">
+            <h3>🎯 Gesture Recognized!</h3>
+            <p id="gestureText">No gesture detected</p>
+        </div>
+
+        <div class="features">
+        </div>
+    </div>
+
+    <!-- Load MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script>
+        // Global variables
+        let video = null;
+        let canvas = null;
+        let ctx = null;
+        let isDetecting = false;
+        let detectionInterval = null;
+        let collectedGestures = [];
+        let trainedModel = null;
+        let isRecognizing = false;
+
+        // Temporal smoothing for recognition stability
+        let recognitionHistory = [];
+        const MAX_HISTORY = 5;
+        let lastRecognizedGesture = null;
+        let gestureConfidenceHistory = [];
+        let isCollecting = false;
+        let currentGestureName = '';
+        let collectionInterval = null;
+        
+        // MediaPipe variables
+        let hands = null;
+        let camera = null;
+        let lastResults = null;
+
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            canvas = document.getElementById('videoCanvas');
+            ctx = canvas.getContext('2d');
+            updateStatus('Initializing MediaPipe...', 'info');
+            initializeMediaPipe();
+        });
+
+        // Initialize MediaPipe Hands
+        function initializeMediaPipe() {
+            hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                }
+            });
+
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults(onResults);
+            updateStatus('Ready to start camera', 'success');
+        }
+
+        // MediaPipe results handler
+        function onResults(results) {
+            lastResults = results;
+            
+            if (!isDetecting) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw video frame
+            if (video) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
+            
+            // Draw hand landmarks and recognize gestures
+            if (results.multiHandLandmarks) {
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const landmarks = results.multiHandLandmarks[i];
+                    const handedness = results.multiHandedness[i];
+                    
+                    // Draw hand landmarks
+                    drawHandLandmarks(landmarks, handedness);
+                    
+                    // Recognize and display gesture
+                    if (isRecognizing && trainedModel) {
+                        const recognizedGesture = recognizeGesture(landmarks);
+                        displayGestureRecognition(recognizedGesture, landmarks[0]);
+                    }
+                }
+            }
+        }
+
+        // Draw hand landmarks and connections
+        function drawHandLandmarks(landmarks, handedness) {
+            const isRightHand = handedness.label === 'Right';
+            
+            // Draw connections
+            drawConnections(landmarks, isRightHand);
+            
+            // Draw landmarks
+            drawLandmarks(landmarks, isRightHand);
+            
+            // Draw finger count
+            const fingerCount = countExtendedFingers(landmarks);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Hand: ${handedness.label}`, 10, 30);
+            ctx.fillText(`Fingers: ${fingerCount}`, 10, 60);
+        }
+
+        // Draw hand connections
+        function drawConnections(landmarks, isRightHand) {
+            const connections = [
+                [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+                [0, 5], [5, 6], [6, 7], [7, 8], // Index
+                [5, 9], [9, 10], [10, 11], [11, 12], // Middle
+                [9, 13], [13, 14], [14, 15], [15, 16], // Ring
+                [13, 17], [17, 18], [18, 19], [19, 20], // Pinky
+                [0, 17] // Palm
+            ];
+            
+            ctx.strokeStyle = isRightHand ? '#00ff00' : '#ff0000';
+            ctx.lineWidth = 2;
+            
+            connections.forEach(([start, end]) => {
+                const startPoint = landmarks[start];
+                const endPoint = landmarks[end];
+                
+                ctx.beginPath();
+                ctx.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
+                ctx.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
+                ctx.stroke();
+            });
+        }
+
+        // Draw hand landmarks
+        function drawLandmarks(landmarks, isRightHand) {
+            landmarks.forEach((landmark, index) => {
+                const x = landmark.x * canvas.width;
+                const y = landmark.y * canvas.height;
+                
+                ctx.fillStyle = isRightHand ? '#00ff00' : '#ff0000';
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Draw landmark numbers
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Arial';
+                ctx.fillText(index.toString(), x + 5, y - 5);
+            });
+        }
+
+        // Count extended fingers
+        function countExtendedFingers(landmarks) {
+            // Safety check for landmarks
+            if (!landmarks || landmarks.length < 21) {
+                console.log('❌ Invalid landmarks:', landmarks);
+                return 0;
+            }
+            
+            let count = 0;
+            
+            try {
+                // Thumb (check if it's extended)
+                if (landmarks[4] && landmarks[3] && landmarks[4].x > landmarks[3].x) count++;
+                
+                // Other fingers (check if tips are higher than PIP joints)
+                const fingerTips = [8, 12, 16, 20];
+                const fingerPips = [6, 10, 14, 18];
+                
+                fingerTips.forEach((tip, index) => {
+                    if (landmarks[tip] && landmarks[fingerPips[index]] && 
+                        landmarks[tip].y < landmarks[fingerPips[index]].y) {
+                        count++;
+                    }
+                });
+            } catch (error) {
+                console.log('❌ Error counting fingers:', error);
+                return 0;
+            }
+            
+            return count;
+        }
+
+        // Enhanced gesture recognition - advanced pattern matching with confidence scoring
+        function recognizeGesture(landmarks) {
+            // Safety check for landmarks
+            if (!landmarks || landmarks.length < 21) {
+                console.log('❌ Invalid landmarks in recognition:', landmarks);
+                return null;
+            }
+            
+            // Calculate current gesture features
+            const currentFeatures = analyzeGestureFeatures(landmarks);
+            const { fingerCount, fingerPattern, handOrientation, palmSize, fingerAngles } = currentFeatures;
+            
+            console.log('Recognizing gesture:', { 
+                fingerCount, 
+                fingerPattern, 
+                handOrientation, 
+                palmSize,
+                confidence: currentFeatures.confidence 
+            });
+            
+            // Check against trained gestures with advanced matching
+            if (trainedModel && trainedModel.gestures) {
+                console.log('Checking trained gestures:', trainedModel.gestures);
+                
+                // Find the best matching trained gesture
+                let bestMatch = null;
+                let bestScore = 0;
+                let bestConfidence = 0;
+                
+                for (let gesture of trainedModel.gestures) {
+                    console.log(`Checking gesture: ${gesture.name}`, {
+                        trainedFingerCount: gesture.fingerCount,
+                        trainedPattern: gesture.fingerPattern,
+                        currentFingerCount: fingerCount,
+                        currentPattern: fingerPattern
+                    });
+                    
+                    // Calculate comprehensive similarity score
+                    const similarityScore = calculateGestureSimilarity(currentFeatures, gesture);
+                    const confidence = similarityScore.confidence;
+                    const score = similarityScore.score;
+                    
+                    console.log(`Similarity analysis for ${gesture.name}:`, {
+                        score: score,
+                        confidence: confidence,
+                        breakdown: similarityScore.breakdown
+                    });
+                    
+                    // Update best match based on score and confidence
+                    if (score > bestScore || (score === bestScore && confidence > bestConfidence)) {
+                        bestScore = score;
+                        bestConfidence = confidence;
+                        bestMatch = gesture;
+                    }
+                }
+                
+                // Apply temporal smoothing for recognition stability
+                const smoothedResult = applyTemporalSmoothing(bestMatch, bestConfidence);
+                
+                if (smoothedResult) {
+                    console.log(`✅ Best match found: ${smoothedResult.name} (score: ${bestScore}, confidence: ${bestConfidence.toFixed(2)}, smoothed: ${smoothedResult.smoothed})`);
+                    return getDisplayName(smoothedResult.name);
+                }
+                
+                // If no confident match, return null (don't show anything)
+                console.log(`No confident match found - best confidence: ${bestConfidence.toFixed(2)}`);
+                return null;
+            }
+            
+            // If no trained gesture found, return null (don't show anything)
+            console.log('No trained gesture found - showing nothing');
+            return null;
+        }
+
+        // Analyze comprehensive gesture features
+        function analyzeGestureFeatures(landmarks) {
+            // Basic finger analysis
+            const fingerCount = countExtendedFingers(landmarks);
+            const fingerPattern = [
+                landmarks[4] && landmarks[3] ? landmarks[4].x > landmarks[3].x : false,  // thumb
+                landmarks[8] && landmarks[6] ? landmarks[8].y < landmarks[6].y : false,  // index
+                landmarks[12] && landmarks[10] ? landmarks[12].y < landmarks[10].y : false, // middle
+                landmarks[16] && landmarks[14] ? landmarks[16].y < landmarks[14].y : false, // ring
+                landmarks[20] && landmarks[18] ? landmarks[20].y < landmarks[18].y : false  // pinky
+            ];
+            
+            // Calculate hand orientation (palm facing direction)
+            const palmCenter = calculatePalmCenter(landmarks);
+            const handOrientation = calculateHandOrientation(landmarks, palmCenter);
+            
+            // Calculate palm size (for scale normalization)
+            const palmSize = calculatePalmSize(landmarks);
+            
+            // Calculate finger angles (for more precise detection)
+            const fingerAngles = calculateFingerAngles(landmarks);
+            
+            // Calculate overall confidence based on landmark quality
+            const confidence = calculateLandmarkConfidence(landmarks);
+            
+            return {
+                fingerCount,
+                fingerPattern,
+                handOrientation,
+                palmSize,
+                fingerAngles,
+                confidence,
+                palmCenter
+            };
+        }
+
+        // Calculate palm center point
+        function calculatePalmCenter(landmarks) {
+            const palmPoints = [0, 5, 9, 13, 17]; // Palm base points
+            let x = 0, y = 0;
+            palmPoints.forEach(index => {
+                x += landmarks[index].x;
+                y += landmarks[index].y;
+            });
+            return {
+                x: x / palmPoints.length,
+                y: y / palmPoints.length
+            };
+        }
+
+        // Calculate hand orientation
+        function calculateHandOrientation(landmarks, palmCenter) {
+            // Use middle finger direction as hand orientation
+            const middleFingerTip = landmarks[12];
+            const middleFingerBase = landmarks[9];
+            
+            const dx = middleFingerTip.x - middleFingerBase.x;
+            const dy = middleFingerTip.y - middleFingerBase.y;
+            
+            return Math.atan2(dy, dx);
+        }
+
+        // Calculate palm size for normalization
+        function calculatePalmSize(landmarks) {
+            // Use distance between palm center and middle finger base
+            const palmCenter = calculatePalmCenter(landmarks);
+            const middleFingerBase = landmarks[9];
+            
+            const dx = palmCenter.x - middleFingerBase.x;
+            const dy = palmCenter.y - middleFingerBase.y;
+            
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Calculate finger angles for more precise detection
+        function calculateFingerAngles(landmarks) {
+            const angles = [];
+            
+            // Calculate angle for each finger
+            const fingerJoints = [
+                [4, 3, 2],    // Thumb
+                [8, 6, 5],    // Index
+                [12, 10, 9],  // Middle
+                [16, 14, 13], // Ring
+                [20, 18, 17]  // Pinky
+            ];
+            
+            fingerJoints.forEach(([tip, mid, base]) => {
+                const angle = calculateAngle(
+                    landmarks[base], landmarks[mid], landmarks[tip]
+                );
+                angles.push(angle);
+            });
+            
+            return angles;
+        }
+
+        // Calculate angle between three points
+        function calculateAngle(p1, p2, p3) {
+            const a = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+            const b = Math.sqrt(Math.pow(p3.x - p2.x, 2) + Math.pow(p3.y - p2.y, 2));
+            const c = Math.sqrt(Math.pow(p3.x - p1.x, 2) + Math.pow(p3.y - p1.y, 2));
+            
+            return Math.acos((a * a + b * b - c * c) / (2 * a * b));
+        }
+
+        // Calculate landmark confidence based on hand detection quality
+        function calculateLandmarkConfidence(landmarks) {
+            let confidence = 1.0;
+            
+            // Check for reasonable landmark positions
+            landmarks.forEach((landmark, index) => {
+                if (landmark.x < 0 || landmark.x > 1 || landmark.y < 0 || landmark.y > 1) {
+                    confidence -= 0.1;
+                }
+            });
+            
+            // Check for hand-like proportions
+            const palmSize = calculatePalmSize(landmarks);
+            if (palmSize < 0.05 || palmSize > 0.3) {
+                confidence -= 0.2;
+            }
+            
+            // Check for reasonable finger lengths
+            const fingerLengths = calculateFingerLengths(landmarks);
+            fingerLengths.forEach(length => {
+                if (length < 0.02 || length > 0.2) {
+                    confidence -= 0.05;
+                }
+            });
+            
+            return Math.max(0, confidence);
+        }
+
+        // Calculate finger lengths
+        function calculateFingerLengths(landmarks) {
+            const fingerTips = [4, 8, 12, 16, 20];
+            const fingerBases = [2, 5, 9, 13, 17];
+            
+            return fingerTips.map((tip, index) => {
+                const base = fingerBases[index];
+                const dx = landmarks[tip].x - landmarks[base].x;
+                const dy = landmarks[tip].y - landmarks[base].y;
+                return Math.sqrt(dx * dx + dy * dy);
+            });
+        }
+
+        // Calculate comprehensive gesture similarity
+        function calculateGestureSimilarity(currentFeatures, trainedGesture) {
+            let score = 0;
+            let confidence = 0;
+            const breakdown = {};
+            
+            // 1. Finger count similarity (40% weight)
+            const fingerCountMatch = currentFeatures.fingerCount === trainedGesture.fingerCount;
+            const fingerCountScore = fingerCountMatch ? 40 : 0;
+            score += fingerCountScore;
+            breakdown.fingerCount = { match: fingerCountMatch, score: fingerCountScore };
+            
+            // 2. Finger pattern similarity (30% weight)
+            let patternMatches = 0;
+            for (let i = 0; i < 5; i++) {
+                if (currentFeatures.fingerPattern[i] === trainedGesture.fingerPattern[i]) {
+                    patternMatches++;
+                }
+            }
+            const patternScore = (patternMatches / 5) * 30;
+            score += patternScore;
+            breakdown.fingerPattern = { matches: patternMatches, score: patternScore };
+            
+            // 3. Hand orientation similarity (15% weight)
+            if (trainedGesture.handOrientation !== undefined) {
+                const orientationDiff = Math.abs(currentFeatures.handOrientation - trainedGesture.handOrientation);
+                const orientationScore = Math.max(0, 15 - (orientationDiff * 10));
+                score += orientationScore;
+                breakdown.handOrientation = { diff: orientationDiff, score: orientationScore };
+            }
+            
+            // 4. Palm size similarity (10% weight)
+            if (trainedGesture.palmSize !== undefined) {
+                const sizeDiff = Math.abs(currentFeatures.palmSize - trainedGesture.palmSize);
+                const sizeScore = Math.max(0, 10 - (sizeDiff * 50));
+                score += sizeScore;
+                breakdown.palmSize = { diff: sizeDiff, score: sizeScore };
+            }
+            
+            // 5. Finger angle similarity (5% weight)
+            if (trainedGesture.fingerAngles !== undefined) {
+                let angleScore = 0;
+                currentFeatures.fingerAngles.forEach((angle, index) => {
+                    if (trainedGesture.fingerAngles[index] !== undefined) {
+                        const angleDiff = Math.abs(angle - trainedGesture.fingerAngles[index]);
+                        angleScore += Math.max(0, 1 - (angleDiff * 5));
+                    }
+                });
+                score += angleScore;
+                breakdown.fingerAngles = { score: angleScore };
+            }
+            
+            // Calculate overall confidence
+            confidence = (score / 100) * currentFeatures.confidence;
+            
+            return {
+                score: Math.min(100, score),
+                confidence: Math.min(1, confidence),
+                breakdown: breakdown
+            };
+        }
+
+        // Apply temporal smoothing for recognition stability
+        function applyTemporalSmoothing(bestMatch, confidence) {
+            if (!bestMatch || confidence < 0.6) {
+                // Add null to history for low confidence
+                recognitionHistory.push(null);
+                if (recognitionHistory.length > MAX_HISTORY) {
+                    recognitionHistory.shift();
+                }
+                return null;
+            }
+            
+            // Add current recognition to history
+            recognitionHistory.push(bestMatch.name);
+            if (recognitionHistory.length > MAX_HISTORY) {
+                recognitionHistory.shift();
+            }
+            
+            // Add confidence to history
+            gestureConfidenceHistory.push(confidence);
+            if (gestureConfidenceHistory.length > MAX_HISTORY) {
+                gestureConfidenceHistory.shift();
+            }
+            
+            // Calculate frequency of each gesture in recent history
+            const gestureFrequency = {};
+            recognitionHistory.forEach(gesture => {
+                if (gesture) {
+                    gestureFrequency[gesture] = (gestureFrequency[gesture] || 0) + 1;
+                }
+            });
+            
+            // Find most frequent gesture in recent history
+            const mostFrequentGesture = Object.keys(gestureFrequency).reduce((a, b) => 
+                gestureFrequency[a] > gestureFrequency[b] ? a : b, null
+            );
+            
+            // Calculate average confidence for the most frequent gesture
+            const avgConfidence = gestureConfidenceHistory.reduce((a, b) => a + b, 0) / gestureConfidenceHistory.length;
+            
+            // Apply smoothing logic
+            if (mostFrequentGesture && gestureFrequency[mostFrequentGesture] >= 3) {
+                // If gesture appears 3+ times in recent history, use it
+                return {
+                    name: mostFrequentGesture,
+                    smoothed: true,
+                    frequency: gestureFrequency[mostFrequentGesture],
+                    avgConfidence: avgConfidence
+                };
+            } else if (confidence >= 0.8) {
+                // High confidence single detection
+                return {
+                    name: bestMatch.name,
+                    smoothed: false,
+                    frequency: 1,
+                    avgConfidence: confidence
+                };
+            }
+            
+            return null;
+        }
+
+        // Get display name for gesture
+        function getDisplayName(gestureName) {
+            const name = gestureName.toLowerCase();
+            
+            if (name.includes('one')) return 'One';
+            if (name.includes('two')) return 'Two';
+            if (name.includes('three')) return 'Three';
+            if (name.includes('four')) return 'Four';
+            if (name.includes('five')) return 'Five';
+            if (name.includes('thumbsup')) return 'Thumbs Up';
+            if (name.includes('peace')) return 'Peace';
+            if (name.includes('water')) return 'Water';
+            if (name.includes('food')) return 'Food';
+            if (name.includes('stop')) return 'Stop';
+            if (name.includes('ok')) return 'OK';
+            if (name.includes('fist')) return 'Fist';
+            
+            return gestureName; // Return original name if no match
+        }
+
+        // Find best match from trained gestures - simplified
+        function findBestAdvancedMatch(fingerPattern, fingerCount) {
+            if (!trainedModel || !trainedModel.gestures) return null;
+            
+            console.log('Looking for match:', { fingerCount, fingerPattern });
+            
+            // Simple matching: find gesture with same finger count
+            for (let gesture of trainedModel.gestures) {
+                console.log(`Checking ${gesture.name}: ${gesture.fingerCount} fingers`);
+                
+                if (gesture.fingerCount === fingerCount) {
+                    console.log(`✅ Match found: ${gesture.name}`);
+                    return gesture;
+                }
+            }
+            
+            console.log('❌ No match found');
+            return null;
+        }
+
+        // Get precise recognition with exact finger counts
+        function getPreciseRecognition(fingerPattern, fingerCount) {
+            if (!trainedModel || !trainedModel.advancedPatterns) {
+                return getGestureInterpretations(fingerPattern, fingerCount).join(" / ");
+            }
+            
+            // Use advanced patterns for precise recognition
+            const patterns = trainedModel.advancedPatterns;
+            
+            // Try exact pattern match first
+            for (let [key, pattern] of Object.entries(patterns)) {
+                if (arraysEqual(pattern.pattern, fingerPattern)) {
+                    return pattern.names.join(" / ");
+                }
+            }
+            
+            // Try finger count match
+            for (let [key, pattern] of Object.entries(patterns)) {
+                if (pattern.fingerCount === fingerCount) {
+                    return pattern.names.join(" / ");
+                }
+            }
+            
+            // Fallback to basic recognition
+            return getGestureInterpretations(fingerPattern, fingerCount).join(" / ");
+        }
+
+        // Find best matching trained gesture
+        function findBestTrainedGesture(fingerPattern, fingerCount) {
+            if (!trainedModel || !trainedModel.gestures) return null;
+            
+            // First try exact pattern match
+            for (let gesture of trainedModel.gestures) {
+                if (gesture.pattern && arraysEqual(gesture.pattern, fingerPattern)) {
+                    return gesture.name;
+                }
+            }
+            
+            // Then try finger count match
+            for (let gesture of trainedModel.gestures) {
+                if (gesture.fingerCount === fingerCount) {
+                    return gesture.name;
+                }
+            }
+            
+            return null;
+        }
+
+        // Helper function to compare arrays
+        function arraysEqual(a, b) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+
+        // Get multiple interpretations of the same gesture
+        function getGestureInterpretations(fingerPattern, fingerCount) {
+            const interpretations = [];
+            
+            // Define gesture patterns with multiple names
+            if (fingerCount === 0) {
+                interpretations.push("Fist", "Zero", "Closed");
+            } else if (fingerCount === 1) {
+                if (fingerPattern[1] && !fingerPattern[2] && !fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("One", "Index", "Point");
+                } else if (fingerPattern[0] && !fingerPattern[1] && !fingerPattern[2] && !fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("Thumbs Up", "Good", "Like");
+                }
+            } else if (fingerCount === 2) {
+                if (fingerPattern[1] && fingerPattern[2] && !fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("Peace", "Two", "Victory", "V");
+                } else if (fingerPattern[1] && fingerPattern[4] && !fingerPattern[2] && !fingerPattern[3]) {
+                    interpretations.push("Rock", "Horns", "Devil");
+                } else if (fingerPattern[0] && fingerPattern[1] && !fingerPattern[2] && !fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("Two", "Thumb + Index");
+                }
+            } else if (fingerCount === 3) {
+                if (fingerPattern[1] && fingerPattern[2] && fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("Three", "OK", "Perfect");
+                } else if (fingerPattern[0] && fingerPattern[1] && fingerPattern[2] && !fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("Three", "Thumb + Two");
+                }
+            } else if (fingerCount === 4) {
+                if (fingerPattern[1] && fingerPattern[2] && fingerPattern[3] && fingerPattern[4] && !fingerPattern[0]) {
+                    interpretations.push("Four", "High Four");
+                } else if (fingerPattern[0] && fingerPattern[1] && fingerPattern[2] && fingerPattern[3] && !fingerPattern[4]) {
+                    interpretations.push("Four", "Thumb + Three");
+                }
+            } else if (fingerCount === 5) {
+                interpretations.push("Open Hand", "Five", "High Five", "Stop");
+            }
+            
+            return interpretations;
+        }
+
+        // Display gesture recognition on camera - ONLY trained gestures
+        function displayGestureRecognition(gesture, wristPoint) {
+            if (!gesture || gesture === null) {
+                // Don't display anything for untrained gestures
+                return;
+            }
+            
+            // Calculate position above the hand
+            const x = wristPoint.x * canvas.width;
+            const y = wristPoint.y * canvas.height - 50;
+            
+            // Draw background rectangle with better styling
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(x - 80, y - 30, 160, 60);
+            
+            // Draw border with color coding
+            ctx.strokeStyle = getGestureColor(gesture);
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x - 80, y - 30, 160, 60);
+            
+            // Draw gesture text with larger font
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(gesture, x, y + 5);
+            
+            // Draw finger count below
+            const fingerCount = extractFingerCount(gesture);
+            if (fingerCount !== null) {
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText(`${fingerCount} fingers`, x, y + 25);
+            }
+            
+            // Reset text alignment
+            ctx.textAlign = 'left';
+            
+            // Update gesture result display
+            document.getElementById('gestureText').textContent = gesture;
+            document.getElementById('gestureResult').style.display = 'block';
+        }
+
+        // Get color based on gesture type
+        function getGestureColor(gesture) {
+            const gestureLower = gesture.toLowerCase();
+            
+            // Color coding for different gesture types
+            if (gestureLower.includes('one') || gestureLower.includes('1')) {
+                return '#ff8800'; // Orange for one
+            } else if (gestureLower.includes('two') || gestureLower.includes('2') || gestureLower.includes('peace')) {
+                return '#ffff00'; // Yellow for two/peace
+            } else if (gestureLower.includes('three') || gestureLower.includes('3') || gestureLower.includes('ok') || gestureLower.includes('water')) {
+                return '#00ff00'; // Green for three/ok/water
+            } else if (gestureLower.includes('four') || gestureLower.includes('4')) {
+                return '#0088ff'; // Blue for four
+            } else if (gestureLower.includes('five') || gestureLower.includes('5') || gestureLower.includes('stop')) {
+                return '#8800ff'; // Purple for five/stop
+            } else if (gestureLower.includes('thumbsup')) {
+                return '#ff4444'; // Red for thumbs up
+            } else if (gestureLower.includes('food')) {
+                return '#ff8800'; // Orange for food
+            } else if (gestureLower.includes('fist')) {
+                return '#666666'; // Gray for fist
+            }
+            
+            return '#00ff00'; // Default green
+        }
+
+        // Extract finger count from gesture string
+        function extractFingerCount(gesture) {
+            const match = gesture.match(/\b(\d+)\b/);
+            return match ? parseInt(match[1]) : null;
+        }
+
+        // Update status message
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Start camera
+        async function startCamera() {
+            // Prevent multiple simultaneous starts
+            if (isDetecting) {
+                console.log('Camera already starting/running');
+                return;
+            }
+            
+            try {
+                console.log('🎥 Starting camera...');
+                
+                // Stop any existing camera first
+                if (camera) {
+                    console.log('Stopping existing camera...');
+                    camera.stop();
+                    camera = null;
+                }
+                
+                if (video && video.srcObject) {
+                    const tracks = video.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+                
+                video = document.createElement('video');
+                video.width = 640;
+                video.height = 480;
+                video.muted = true; // Prevent audio issues
+                video.playsInline = true;
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 640, 
+                        height: 480,
+                        facingMode: 'user'
+                    } 
+                });
+                
+                video.srcObject = stream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Video load timeout'));
+                    }, 10000);
+                    
+                    video.onloadedmetadata = () => {
+                        clearTimeout(timeout);
+                        video.play()
+                            .then(() => {
+                                console.log('✅ Video started successfully');
+                                resolve();
+                            })
+                            .catch((playError) => {
+                                console.log('Video play error (non-critical):', playError);
+                                // Continue even if play fails
+                                resolve();
+                            });
+                    };
+                });
+                
+                // Initialize MediaPipe camera
+                camera = new Camera(video, {
+                    onFrame: async () => {
+                        if (hands) {
+                            await hands.send({image: video});
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+                
+                camera.start();
+                
+                // Start detection loop
+                isDetecting = true;
+                
+                // Update UI
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('collectBtn').disabled = false;
+                
+                updateStatus('Camera started!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Camera error:', error);
+                updateStatus('Failed to access camera. Please check permissions.', 'error');
+                
+                // Cleanup on error
+                if (camera) {
+                    camera.stop();
+                    camera = null;
+                }
+                if (video && video.srcObject) {
+                    const tracks = video.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+                isDetecting = false;
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            console.log('🛑 Stopping camera...');
+            isDetecting = false;
+            
+            try {
+                if (camera) {
+                    console.log('Stopping MediaPipe camera...');
+                    camera.stop();
+                    camera = null;
+                }
+                
+                if (video && video.srcObject) {
+                    console.log('Stopping video tracks...');
+                    const tracks = video.srcObject.getTracks();
+                    tracks.forEach(track => {
+                        track.stop();
+                        console.log('Stopped track:', track.kind);
+                    });
+                    video.srcObject = null;
+                }
+                
+                // Clear canvas
+                if (ctx) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                
+                console.log('✅ Camera stopped successfully');
+            } catch (error) {
+                console.error('❌ Error stopping camera:', error);
+            }
+            
+            // Update UI
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('collectBtn').disabled = true;
+            document.getElementById('trainBtn').disabled = true;
+            document.getElementById('recognizeBtn').disabled = true;
+            
+            updateStatus('Camera stopped. Click "Start Camera" to begin again.', 'info');
+            document.getElementById('gestureResult').style.display = 'none';
+        }
+
+
+        // Collect gesture
+        function collectGesture() {
+            if (!isDetecting) {
+                updateStatus('Please start camera first', 'error');
+                return;
+            }
+
+            document.getElementById('gestureInput').style.display = 'block';
+            document.getElementById('gestureName').focus();
+        }
+
+        // Start gesture collection
+        function startGestureCollection() {
+            const gestureName = document.getElementById('gestureName').value.trim();
+            
+            if (!gestureName) {
+                updateStatus('Please enter a gesture name', 'error');
+                return;
+            }
+
+            currentGestureName = gestureName;
+            isCollecting = true;
+            
+            // Hide input
+            document.getElementById('gestureInput').style.display = 'none';
+            
+            // Start collecting images faster
+            collectionInterval = setInterval(collectCurrentGesture, 500);
+            
+            updateStatus(`Collecting images for "${gestureName}"... Click "Stop Collection" when done.`, 'info');
+            
+            // Add stop collection button
+            const stopBtn = document.createElement('button');
+            stopBtn.className = 'btn';
+            stopBtn.textContent = '⏹️ Stop Collection';
+            stopBtn.onclick = stopGestureCollection;
+            document.querySelector('.controls').appendChild(stopBtn);
+        }
+
+        // Collect current gesture landmarks - optimized for accuracy and speed
+        function collectCurrentGesture() {
+            if (!isCollecting || !canvas) return;
+            
+            // Store gesture data with MediaPipe landmarks only
+            if (!collectedGestures.find(g => g.name === currentGestureName)) {
+            collectedGestures.push({
+                    name: currentGestureName,
+                    landmarks: [],
+                    fingerCounts: [],
+                    fingerPatterns: []
+                });
+            }
+            
+            const gesture = collectedGestures.find(g => g.name === currentGestureName);
+            
+            // Store MediaPipe landmarks if available
+            if (lastResults && lastResults.multiHandLandmarks && lastResults.multiHandLandmarks.length > 0) {
+                const landmarks = lastResults.multiHandLandmarks[0]; // Store first hand
+                
+                // Validate landmarks
+                if (landmarks && landmarks.length >= 21) {
+                    // Store raw landmarks
+                    gesture.landmarks.push(landmarks);
+                    
+                    // Calculate and store finger count
+                    const fingerCount = countExtendedFingers(landmarks);
+                    gesture.fingerCounts.push(fingerCount);
+                    
+                    // Calculate and store finger pattern
+                    const fingerPattern = [
+                        landmarks[4] && landmarks[3] ? landmarks[4].x > landmarks[3].x : false,  // thumb
+                        landmarks[8] && landmarks[6] ? landmarks[8].y < landmarks[6].y : false,  // index
+                        landmarks[12] && landmarks[10] ? landmarks[12].y < landmarks[10].y : false, // middle
+                        landmarks[16] && landmarks[14] ? landmarks[16].y < landmarks[14].y : false, // ring
+                        landmarks[20] && landmarks[18] ? landmarks[20].y < landmarks[18].y : false  // pinky
+                    ];
+                    gesture.fingerPatterns.push(fingerPattern);
+                    
+                    // Update status less frequently to avoid UI lag
+                    if (gesture.landmarks.length % 5 === 0) {
+                        updateStatus(`Collected ${gesture.landmarks.length} landmark sets for "${currentGestureName}"`, 'success');
+                    }
+                } else {
+                    console.log('❌ Invalid landmarks detected, skipping collection');
+                }
+            } else {
+                console.log('❌ No hand detected, skipping collection');
+            }
+        }
+
+        // Stop gesture collection
+        function stopGestureCollection() {
+            isCollecting = false;
+            
+            if (collectionInterval) {
+                clearInterval(collectionInterval);
+                collectionInterval = null;
+            }
+            
+            // Remove stop button
+            const stopBtn = document.querySelector('.controls button:last-child');
+            if (stopBtn && stopBtn.textContent.includes('Stop Collection')) {
+                stopBtn.remove();
+            }
+            
+            // Enable train button
+            document.getElementById('trainBtn').disabled = false;
+            
+            const gesture = collectedGestures.find(g => g.name === currentGestureName);
+            if (gesture) {
+                updateStatus(`Collection complete! ${gesture.landmarks.length} landmark sets collected for "${currentGestureName}"`, 'success');
+            }
+        }
+
+        // Train model - simple and reliable
+        function trainModel() {
+            console.log('🚀 trainModel() called');
+            console.log('collectedGestures:', collectedGestures);
+            console.log('collectedGestures.length:', collectedGestures.length);
+            
+            if (collectedGestures.length === 0) {
+                console.log('❌ No gestures collected yet');
+                updateStatus('No gestures collected yet', 'error');
+                return;
+            }
+
+            console.log('✅ Starting training with gestures:', collectedGestures);
+            
+            // Create simple model
+            const trainedGestures = [];
+            
+            collectedGestures.forEach(gesture => {
+                console.log(`Processing gesture: ${gesture.name}`, gesture);
+                
+                // Analyze comprehensive gesture features from collected landmark data
+                let dominantFingerCount = 0;
+                let dominantFingerPattern = [false, false, false, false, false];
+                let dominantHandOrientation = 0;
+                let dominantPalmSize = 0;
+                let dominantFingerAngles = [0, 0, 0, 0, 0];
+                
+                if (gesture.landmarks && gesture.landmarks.length > 0) {
+                    console.log(`Processing ${gesture.landmarks.length} landmark sets for ${gesture.name}`);
+                    
+                    // Analyze each landmark set for comprehensive features
+                    const featureAnalysis = [];
+                    
+                    gesture.landmarks.forEach((landmarks, index) => {
+                        if (landmarks && landmarks.length >= 21) {
+                            const features = analyzeGestureFeatures(landmarks);
+                            featureAnalysis.push(features);
+                        }
+                    });
+                    
+                    if (featureAnalysis.length > 0) {
+                        // Find dominant finger count
+                        if (gesture.fingerCounts && gesture.fingerCounts.length > 0) {
+                            const countFrequency = {};
+                            gesture.fingerCounts.forEach(count => {
+                                countFrequency[count] = (countFrequency[count] || 0) + 1;
+                            });
+                            
+                            dominantFingerCount = parseInt(Object.keys(countFrequency).reduce((a, b) => 
+                                countFrequency[a] > countFrequency[b] ? a : b
+                            ));
+                        }
+                        
+                        // Find dominant finger pattern
+                        if (gesture.fingerPatterns && gesture.fingerPatterns.length > 0) {
+                            const patternCounts = [0, 0, 0, 0, 0]; // [thumb, index, middle, ring, pinky]
+                            
+                            gesture.fingerPatterns.forEach(pattern => {
+                                pattern.forEach((finger, index) => {
+                                    if (finger) patternCounts[index]++;
+                                });
+                            });
+                            
+                            dominantFingerPattern = patternCounts.map(count => 
+                                count > gesture.fingerPatterns.length / 2
+                            );
+                        }
+                        
+                        // Calculate dominant hand orientation
+                        const orientations = featureAnalysis.map(f => f.handOrientation).filter(o => !isNaN(o));
+                        if (orientations.length > 0) {
+                            dominantHandOrientation = orientations.reduce((a, b) => a + b) / orientations.length;
+                        }
+                        
+                        // Calculate dominant palm size
+                        const palmSizes = featureAnalysis.map(f => f.palmSize).filter(s => !isNaN(s));
+                        if (palmSizes.length > 0) {
+                            dominantPalmSize = palmSizes.reduce((a, b) => a + b) / palmSizes.length;
+                        }
+                        
+                        // Calculate dominant finger angles
+                        const allAngles = featureAnalysis.map(f => f.fingerAngles).filter(a => a && a.length === 5);
+                        if (allAngles.length > 0) {
+                            for (let i = 0; i < 5; i++) {
+                                const angles = allAngles.map(a => a[i]).filter(angle => !isNaN(angle));
+                                if (angles.length > 0) {
+                                    dominantFingerAngles[i] = angles.reduce((a, b) => a + b) / angles.length;
+                                }
+                            }
+                        }
+                        
+                        console.log(`✅ Analyzed ${gesture.name}:`, {
+                            landmarkSets: gesture.landmarks.length,
+                            dominantFingerCount: dominantFingerCount,
+                            dominantPattern: dominantFingerPattern,
+                            dominantHandOrientation: dominantHandOrientation,
+                            dominantPalmSize: dominantPalmSize,
+                            dominantFingerAngles: dominantFingerAngles,
+                            fingerCountDistribution: gesture.fingerCounts
+                        });
+                    }
+                } else {
+                    console.log(`❌ No landmarks found for ${gesture.name}`);
+                }
+                
+                // Store gesture with comprehensive analyzed features
+                trainedGestures.push({
+                    name: gesture.name,
+                    landmarkCount: gesture.landmarks ? gesture.landmarks.length : 0,
+                    fingerCount: dominantFingerCount,
+                    fingerPattern: dominantFingerPattern,
+                    handOrientation: dominantHandOrientation,
+                    palmSize: dominantPalmSize,
+                    fingerAngles: dominantFingerAngles,
+                    allFingerCounts: gesture.fingerCounts || [],
+                    allFingerPatterns: gesture.fingerPatterns || [],
+                    trained: true
+                });
+                
+                console.log(`✅ Trained ${gesture.name}: ${gesture.landmarks.length} landmark sets, ${dominantFingerCount} fingers, pattern:`, dominantFingerPattern);
+            });
+            
+            // Create model
+                trainedModel = {
+                gestures: trainedGestures,
+                trained: true
+                };
+                
+            console.log('Trained model created:', trainedModel);
+            
+            // Enable recognition
+                document.getElementById('recognizeBtn').disabled = false;
+            
+            console.log('🎉 Training completed successfully!');
+            updateStatus(`Model trained! ${collectedGestures.length} gestures ready for recognition.`, 'success');
+            
+            // Enable data management buttons
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+            const deleteBtn = document.getElementById('deleteBtn');
+            if (downloadBtn) downloadBtn.disabled = false;
+            if (downloadCsvBtn) downloadCsvBtn.disabled = false;
+            if (deleteBtn) deleteBtn.disabled = false;
+        }
+
+        // Download collected data and trained model as JSON
+        function downloadData() {
+            try {
+                const payload = {
+                    exportedAt: new Date().toISOString(),
+                    version: '3.0',
+                    collectedGestures,
+                    trainedModel
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `gesture_data_${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                updateStatus('Data downloaded successfully.', 'success');
+            } catch (e) {
+                console.error('Download error:', e);
+                updateStatus('Failed to download data.', 'error');
+            }
+        }
+
+        // Download labeled landmark data as CSV (label, then 63 values)
+        function downloadLabeledCSV() {
+            try {
+                if (!collectedGestures || collectedGestures.length === 0) {
+                    updateStatus('No data to export.', 'error');
+                    return;
+                }
+                const rows = [];
+                collectedGestures.forEach(g => {
+                    if (g.landmarks && g.landmarks.length > 0) {
+                        g.landmarks.forEach(lm => {
+                            if (lm && lm.length >= 21) {
+                                const values = [];
+                                for (let i = 0; i < 21; i++) {
+                                    const p = lm[i];
+                                    const x = typeof p.x === 'number' ? p.x : 0;
+                                    const y = typeof p.y === 'number' ? p.y : 0;
+                                    const z = typeof p.z === 'number' ? p.z : 0;
+                                    values.push(x, y, z);
+                                }
+                                rows.push([g.name, ...values].join(','));
+                            }
+                        });
+                    }
+                });
+                if (rows.length === 0) {
+                    updateStatus('No landmarks available to export.', 'error');
+                    return;
+                }
+                const csvContent = rows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dataset_${Date.now()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                updateStatus('Labeled CSV downloaded successfully.', 'success');
+            } catch (e) {
+                console.error('CSV download error:', e);
+                updateStatus('Failed to download CSV.', 'error');
+            }
+        }
+
+        // Delete all collected data and trained model
+        function deleteData() {
+            try {
+                collectedGestures = [];
+                trainedModel = null;
+                recognitionHistory = [];
+                gestureConfidenceHistory = [];
+                isRecognizing = false;
+                
+                // Disable buttons dependent on data
+                document.getElementById('recognizeBtn').disabled = true;
+                document.getElementById('trainBtn').disabled = true;
+                const downloadBtn = document.getElementById('downloadBtn');
+                const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+                const deleteBtn = document.getElementById('deleteBtn');
+                if (downloadBtn) downloadBtn.disabled = true;
+                if (downloadCsvBtn) downloadCsvBtn.disabled = true;
+                if (deleteBtn) deleteBtn.disabled = true;
+                
+                // Hide gesture result if visible
+                const result = document.getElementById('gestureResult');
+                if (result) result.style.display = 'none';
+                
+                updateStatus('All collected data deleted. You can start a new collection.', 'info');
+            } catch (e) {
+                console.error('Delete data error:', e);
+                updateStatus('Failed to delete data.', 'error');
+            }
+        }
+
+        // Load saved data from a JSON file
+        function loadSavedData(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data) throw new Error('Empty file');
+                    
+                    // Basic validation
+                    if (!Array.isArray(data.collectedGestures)) {
+                        throw new Error('Invalid file format: missing collectedGestures');
+                    }
+                    
+                    collectedGestures = data.collectedGestures || [];
+                    trainedModel = data.trainedModel || null;
+                    
+                    // Enable buttons based on presence of data
+                    document.getElementById('trainBtn').disabled = collectedGestures.length === 0;
+                    document.getElementById('recognizeBtn').disabled = !trainedModel;
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+                    const deleteBtn = document.getElementById('deleteBtn');
+                    if (downloadBtn) downloadBtn.disabled = collectedGestures.length === 0 && !trainedModel;
+                    if (downloadCsvBtn) downloadCsvBtn.disabled = collectedGestures.length === 0;
+                    if (deleteBtn) deleteBtn.disabled = collectedGestures.length === 0 && !trainedModel;
+                    
+                    updateStatus('Saved data loaded successfully.', 'success');
+                } catch (err) {
+                    console.error('Load data error:', err);
+                    updateStatus('Failed to load saved data. Ensure it is a valid JSON export.', 'error');
+                } finally {
+                    // Reset file input
+                    event.target.value = '';
+                }
+            };
+            reader.onerror = function() {
+                updateStatus('Failed to read the selected file.', 'error');
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // Analyze finger pattern from landmarks
+        function analyzeFingerPattern(landmarks) {
+            const thumbExtended = landmarks[4].x > landmarks[3].x;
+            const indexExtended = landmarks[8].y < landmarks[6].y;
+            const middleExtended = landmarks[12].y < landmarks[10].y;
+            const ringExtended = landmarks[16].y < landmarks[14].y;
+            const pinkyExtended = landmarks[20].y < landmarks[18].y;
+            
+            const pattern = [thumbExtended, indexExtended, middleExtended, ringExtended, pinkyExtended];
+            const fingerCount = pattern.filter(Boolean).length;
+            
+            return {
+                pattern: pattern,
+                fingerCount: fingerCount,
+                thumbExtended: thumbExtended,
+                indexExtended: indexExtended,
+                middleExtended: middleExtended,
+                ringExtended: ringExtended,
+                pinkyExtended: pinkyExtended
+            };
+        }
+
+        // Find dominant pattern from multiple samples
+        function findDominantPattern(patterns) {
+            if (patterns.length === 0) {
+                return { pattern: [false, false, false, false, false], fingerCount: 0, confidence: 0 };
+            }
+            
+            // Count occurrences of each finger state
+            const fingerCounts = [0, 0, 0, 0, 0]; // thumb, index, middle, ring, pinky
+            const fingerCountDistribution = {};
+            
+            patterns.forEach(pattern => {
+                // Count finger states
+                pattern.pattern.forEach((finger, index) => {
+                    if (finger) fingerCounts[index]++;
+                });
+                
+                // Count finger count distribution
+                const count = pattern.fingerCount;
+                fingerCountDistribution[count] = (fingerCountDistribution[count] || 0) + 1;
+            });
+            
+            // Find most common finger count
+            const mostCommonFingerCount = Object.keys(fingerCountDistribution)
+                .reduce((a, b) => fingerCountDistribution[a] > fingerCountDistribution[b] ? a : b);
+            
+            // Create dominant pattern based on majority
+            const dominantPattern = fingerCounts.map(count => count > patterns.length / 2);
+            const confidence = Math.max(...Object.values(fingerCountDistribution)) / patterns.length;
+            
+            return {
+                pattern: dominantPattern,
+                fingerCount: parseInt(mostCommonFingerCount),
+                confidence: confidence
+            };
+        }
+
+        // Find the most common finger pattern
+        function findMostCommonPattern(patterns) {
+            if (patterns.length === 0) return [false, false, false, false, false];
+            
+            const counts = [0, 0, 0, 0, 0];
+            
+            patterns.forEach(pattern => {
+                pattern.forEach((finger, index) => {
+                    if (finger) counts[index]++;
+                });
+            });
+            
+            // Return pattern where majority of samples have finger extended
+            return counts.map(count => count > patterns.length / 2);
+        }
+
+        // Start recognition
+        function startRecognition() {
+            if (!trainedModel) {
+                updateStatus('Please train model first', 'error');
+                return;
+            }
+
+            isRecognizing = true;
+            updateStatus('Recognition active! Show gestures to camera.', 'info');
+            
+            // Enable recognition button state
+            document.getElementById('recognizeBtn').textContent = '🔍 Stop Recognition';
+            document.getElementById('recognizeBtn').onclick = stopRecognition;
+        }
+
+        // Stop recognition
+        function stopRecognition() {
+            isRecognizing = false;
+            updateStatus('Recognition stopped.', 'info');
+            
+            // Reset recognition button
+            document.getElementById('recognizeBtn').textContent = '🔍 Recognize';
+            document.getElementById('recognizeBtn').onclick = startRecognition;
+            
+            // Hide gesture result
+            document.getElementById('gestureResult').style.display = 'none';
+        }
+
+        // Show gesture result
+        function showGestureResult(gestureName) {
+            document.getElementById('gestureText').textContent = gestureName;
+            document.getElementById('gestureResult').style.display = 'block';
+            
+            updateStatus(`Gesture recognized: ${gestureName}`, 'success');
+        }
+
+        // Global cleanup function
+        function cleanupCamera() {
+            console.log('🧹 Global camera cleanup...');
+            stopCamera();
+            }
+
+        // Add cleanup on page unload
+        window.addEventListener('beforeunload', cleanupCamera);
+        window.addEventListener('unload', cleanupCamera);
+    </script>
+</body>
+</html>

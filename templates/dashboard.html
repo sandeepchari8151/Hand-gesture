@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Gesture Recognition Dashboard</h1>
+        <h2>Welcome, {{ user }}!</h2>
+        
+        <div class="message-box">
+            <h3>AI Hand Recognition System</h3>
+        </div>
+
+        <div style="text-align: center; margin: 40px 0;">
+            <a href="/webcam" style="display: inline-block; background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 20px 40px; text-decoration: none; border-radius: 50px; font-size: 1.2em; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: all 0.3s ease;">
+                🎥 Start Hand Recognition
+            </a>
+            
+            <div style="margin-top: 16px;">
+                <a href="/logout" style="
+                    display: inline-block;
+                    padding: 10px 18px;
+                    border-radius: 10px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    color: white;
+                    background: linear-gradient(45deg, #ff6b6b, #f06595);
+                    box-shadow: 0 8px 20px rgba(240, 101, 149, 0.35);
+                    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+                "
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 28px rgba(240,101,149,0.45)';"
+                onmouseout ="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(240,101,149,0.35)';"
+                >
+                    Logout
+                </a>
+            </div>
+        </div>
+
+        
+        <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 15px;">
+            <h3 style="margin-bottom: 15px;">🚀 How to Use</h3>
+            <ol style="margin-left: 20px; line-height: 1.6;">
+                <li><strong>Start Camera</strong> - Click the button above to access your webcam</li>
+                <li><strong>Hand Detection</strong> - Enable detection to see real-time hand tracking</li>
+                <li><strong>Collect Gestures</strong> - Show different hand gestures and collect training data</li>
+                <li><strong>Train Model</strong> - Train the AI model on your collected gestures</li>
+                <li><strong>Recognition</strong> - Start recognition mode to identify gestures in real-time</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
