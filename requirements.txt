@@ -1,4 +1,5 @@
 Flask==2.3.3
+gunicorn==23.0.0
 opencv-python==4.8.1.78
 mediapipe>=0.10.13
 pandas>=2.1.1
